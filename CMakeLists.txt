@@ -3,7 +3,11 @@ project(lab1_5_spo C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(server server.c storage.c storage.h json_api.c json_api.h xml_api.h)
+add_executable(main main.c)
+include_directories(/usr/local/Cellar/json-c/0.15/include)
+target_link_libraries(main  xml2)
+
+add_executable(server server.c storage.c storage.h json_api.c json_api.h xml_api.h xml_api.c)
 
 if (APPLE)
 include_directories(/usr/local/Cellar/json-c/0.15/include)
@@ -14,7 +18,7 @@ endif()
 
 
 add_executable(client client.c storage.h json_api.c json_api.h
-        ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c ${CMAKE_CURRENT_BINARY_DIR}/y.tab.c ${CMAKE_CURRENT_BINARY_DIR}/y.tab.h xml_api.h)
+        ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.c ${CMAKE_CURRENT_BINARY_DIR}/y.tab.c ${CMAKE_CURRENT_BINARY_DIR}/y.tab.h xml_api.h xml_api.c)
 
 target_include_directories(client PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
