@@ -68,11 +68,15 @@ struct xml_api_create_table_request xml_api_to_create_table_request(xmlDoc *doc)
     request.columns.amount = amount;
     request.columns.columns = malloc(sizeof(*request.columns.columns) * request.columns.amount);
     int i = 0;
-    for (curr_node = columns_node->children; curr_node; curr_node = curr_node->next, i++) {
+    for (curr_node = columns_node->children; curr_node; curr_node = curr_node->next) {
+        if (curr_node->type != XML_ELEMENT_NODE) {
+            continue;
+        }
         xmlChar *name = find_node_value(curr_node, xmlCharStrdup("name"));
         xmlChar *type = find_node_value(curr_node, xmlCharStrdup("type"));
         request.columns.columns[i].name = strdup((char *) name);
         request.columns.columns[i].type = atoi((char *) type);
+        i++;
     }
 
     return request;
@@ -94,16 +98,9 @@ static struct storage_value *xml_to_storage_value(xmlChar *value) {
     }
 
     struct storage_value *st_value;
+    st_value = malloc(sizeof(*value));
     regex_t regex;
     int result;
-
-    regcomp(&regex, "[\'\"].*[\'\"]", 0);
-    result = regexec(&regex, (char *) value, 0, NULL, 0);
-    if (!result) {
-        st_value->type = STORAGE_COLUMN_TYPE_STR;
-        st_value->value.str = strdup((char *) value);
-        return st_value;
-    }
 
     regcomp(&regex, "[-+]?[1-9]\\d*", 0);
     result = regexec(&regex, (char *) value, 0, NULL, 0);
@@ -121,7 +118,17 @@ static struct storage_value *xml_to_storage_value(xmlChar *value) {
         return st_value;
     }
 
-    errno = EINVAL;
+    /*regcomp(&regex, "[\'\"].+[\'\"]", 0);
+    result = regexec(&regex, (char *) value, 0, NULL, 0);
+    if (!result) {
+        st_value->type = STORAGE_COLUMN_TYPE_STR;
+        st_value->value.str = strdup((char *) value);
+        return st_value;
+    }*/
+
+    st_value->type = STORAGE_COLUMN_TYPE_STR;
+    st_value->value.str = strdup((char *) value);
+    return st_value;
 }
 
 struct xml_api_insert_request xml_api_to_insert_request(xmlDoc *doc) {
@@ -136,19 +143,27 @@ struct xml_api_insert_request xml_api_to_insert_request(xmlDoc *doc) {
     request.columns.amount = columns_amount;
     request.columns.columns = malloc(sizeof(*request.columns.columns) * request.columns.amount);
     int i = 0;
-    for (curr_node = columns_node->children; curr_node; curr_node = curr_node->next, i++) {
+    for (curr_node = columns_node->children; curr_node; curr_node = curr_node->next) {
+        if (curr_node->type != XML_ELEMENT_NODE) {
+            continue;
+        }
         xmlChar *name = find_node_value(curr_node, xmlCharStrdup("column"));
         request.columns.columns[i] = strdup((char *) name);
+        i++;
     }
 
-    xmlNodePtr values_node = find_node(curr_node, xmlCharStrdup("values"));
+    xmlNodePtr values_node = find_node(root_node, xmlCharStrdup("values"));
     int values_amount = (int) xmlChildElementCount(values_node);
     request.values.amount = values_amount;
     request.values.values = malloc(sizeof(struct storage_value *) * request.values.amount);
     i = 0;
-    for (curr_node = values_node->children; curr_node; curr_node = curr_node->next, i++) {
+    for (curr_node = values_node->children; curr_node; curr_node = curr_node->next) {
+        if (curr_node->type != XML_ELEMENT_NODE) {
+            continue;
+        }
         xmlChar *name = find_node_value(curr_node, xmlCharStrdup("value"));
         request.values.values[i] = xml_to_storage_value(name);
+        i++;
     }
 
     return request;
@@ -184,7 +199,7 @@ static struct xml_api_where *do_xml_api_to_where(xmlNode *node) {
 static struct xml_api_where *xml_api_to_where(xmlDoc *doc) {
     xmlNodePtr root_node = xmlDocGetRootElement(doc);
     xmlNodePtr where_node = find_node(root_node, BAD_CAST "where");
-    return do_xml_api_to_where(root_node);
+    return do_xml_api_to_where(where_node);
 }
 
 struct xml_api_delete_request xml_api_to_delete_request(xmlDoc *doc) {
@@ -227,9 +242,13 @@ struct xml_api_select_request xml_api_to_select_request(xmlDoc *doc) {
     request.columns.amount = columns_amount;
     request.columns.columns = malloc(sizeof(*request.columns.columns) * request.columns.amount);
     int i = 0;
-    for (curr_node = columns_node->children; curr_node; curr_node = curr_node->next, i++) {
+    for (curr_node = columns_node->children; curr_node; curr_node = curr_node->next) {
+        if (curr_node->type != XML_ELEMENT_NODE) {
+            continue;
+        }
         xmlChar *name = find_node_value(curr_node, xmlCharStrdup("column"));
         request.columns.columns[i] = strdup((char *) name);
+        i++;
     }
 
     xmlNodePtr joins_node = find_node(curr_node, xmlCharStrdup("joins"));
@@ -237,13 +256,17 @@ struct xml_api_select_request xml_api_to_select_request(xmlDoc *doc) {
     request.joins.amount = joins_amount;
     request.joins.joins = malloc(sizeof(*request.joins.joins) * request.joins.amount);
     i = 0;
-    for (curr_node = joins_node->children; curr_node; curr_node = curr_node->next, i++) {
+    for (curr_node = joins_node->children; curr_node; curr_node = curr_node->next) {
+        if (curr_node->type != XML_ELEMENT_NODE) {
+            continue;
+        }
         xmlChar *table_name = find_node_value(curr_node, xmlCharStrdup("table"));
         xmlChar *t_column = find_node_value(curr_node, xmlCharStrdup("t_column"));
         xmlChar *s_column = find_node_value(curr_node, xmlCharStrdup("s_column"));
         request.joins.joins[i].table = strdup((char *) table_name);
         request.joins.joins[i].s_column = strdup((char *) s_column);
         request.joins.joins[i].t_column = strdup((char *) t_column);
+        i++;
     }
 
     xmlNodePtr where_node = find_node(root_node, BAD_CAST "where");
@@ -264,9 +287,13 @@ struct xml_api_update_request xml_api_to_update_request(xmlDoc *doc) {
     request.columns.amount = columns_amount;
     request.columns.columns = malloc(sizeof(*request.columns.columns) * request.columns.amount);
     int i = 0;
-    for (curr_node = columns_node->children; curr_node; curr_node = curr_node->next, i++) {
+    for (curr_node = columns_node->children; curr_node; curr_node = curr_node->next) {
+        if (curr_node->type != XML_ELEMENT_NODE) {
+            continue;
+        }
         xmlChar *name = find_node_value(curr_node, xmlCharStrdup("column"));
         request.columns.columns[i] = strdup((char *) name);
+        i++;
     }
 
     xmlNodePtr values_node = find_node(curr_node, xmlCharStrdup("values"));
@@ -274,9 +301,13 @@ struct xml_api_update_request xml_api_to_update_request(xmlDoc *doc) {
     request.values.amount = values_amount;
     request.values.values = malloc(sizeof(struct storage_value *) * request.values.amount);
     i = 0;
-    for (curr_node = values_node->children; curr_node; curr_node = curr_node->next, i++) {
+    for (curr_node = values_node->children; curr_node; curr_node = curr_node->next) {
+        if (curr_node->type != XML_ELEMENT_NODE) {
+            continue;
+        }
         xmlChar *name = find_node_value(curr_node, xmlCharStrdup("value"));
         request.values.values[i] = xml_to_storage_value(name);
+        i++;
     }
 
     xmlNodePtr where_node = find_node(root_node, BAD_CAST "where");
