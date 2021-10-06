@@ -216,7 +216,7 @@ where_expr
         $$ = xmlNewNode(NULL, BAD_CAST "where");
 
         xmlNodePtr opNode = xmlNewNode(NULL, BAD_CAST "op");
-        xmlAddChild(opNode, xmlNewText(BAD_CAST XML_API_OPERATOR_AND));
+        xmlAddChild(opNode, xmlNewText(BAD_CAST "6"));
         xmlAddChild($$, opNode);
 
         xmlNodePtr leftNode = xmlNewNode(NULL, BAD_CAST "left");
@@ -231,7 +231,7 @@ where_expr
         $$ = xmlNewNode(NULL, BAD_CAST "where");
 
         xmlNodePtr opNode = xmlNewNode(NULL, BAD_CAST "op");
-        xmlAddChild(opNode, xmlNewText(BAD_CAST XML_API_OPERATOR_OR));
+        xmlAddChild(opNode, xmlNewText(BAD_CAST "7"));
         xmlAddChild($$, opNode);
 
         xmlNodePtr leftNode = xmlNewNode(NULL, BAD_CAST "left");
@@ -245,12 +245,12 @@ where_expr
     ;
 
 where_value_op
-    : T_EQ_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST XML_API_OPERATOR_EQ));}
-    | T_NE_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST XML_API_OPERATOR_NE));}
-    | T_LT_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST XML_API_OPERATOR_LT));}
-    | T_GT_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST XML_API_OPERATOR_GT));}
-    | T_LE_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST XML_API_OPERATOR_LE));}
-    | T_GE_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST XML_API_OPERATOR_GE));}
+    : T_EQ_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST "0"));}
+    | T_NE_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST "1"));}
+    | T_LT_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST "2"));}
+    | T_GT_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST "3"));}
+    | T_LE_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST "4"));}
+    | T_GE_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST "5"));}
     ;
 
 select_command
