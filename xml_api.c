@@ -333,3 +333,28 @@ xmlDoc *xml_api_make_error(const char *msg) {
     xmlDocSetRootElement(doc, responseNode);
     return doc;
 }
+
+xmlNode *xml_api_from_value(struct storage_value *value) {
+    if (value == NULL) {
+        return NULL;
+    }
+
+    char buffer[1024];
+
+    switch (value->type) {
+        case STORAGE_COLUMN_TYPE_INT:
+            sprintf(buffer, "%d", value->value._int);
+            return xmlNewText(BAD_CAST buffer);
+
+        case STORAGE_COLUMN_TYPE_UINT:
+            sprintf(buffer, "%d", value->value.uint);
+            return xmlNewText(BAD_CAST value->value.uint);
+
+        case STORAGE_COLUMN_TYPE_NUM:
+            sprintf(buffer, "%g", value->value.num);
+            return xmlNewText(BAD_CAST buffer);
+
+        case STORAGE_COLUMN_TYPE_STR:
+            return xmlNewText(BAD_CAST value->value.str);
+    }
+}

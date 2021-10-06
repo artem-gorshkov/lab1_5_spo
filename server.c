@@ -14,12 +14,12 @@
 
 static volatile bool closing = false;
 
-static void close_handler(int sig, siginfo_t * info, void * context) {
+static void close_handler(int sig, siginfo_t *info, void *context) {
     closing = true;
 }
 
-static xmlDoc * handle_request_create_table(struct xml_api_create_table_request request, struct storage * storage) {
-    struct storage_table * table = malloc(sizeof(*table));
+static xmlDoc *handle_request_create_table(struct xml_api_create_table_request request, struct storage *storage) {
+    struct storage_table *table = malloc(sizeof(*table));
 
     table->storage = storage;
     table->position = 0;
@@ -47,8 +47,8 @@ static xmlDoc * handle_request_create_table(struct xml_api_create_table_request 
     }
 }
 
-static xmlDoc * handle_request_drop_table(struct xml_api_drop_table_request request, struct storage * storage) {
-    struct storage_table * table = storage_find_table(storage, request.table_name);
+static xmlDoc *handle_request_drop_table(struct xml_api_drop_table_request request, struct storage *storage) {
+    struct storage_table *table = storage_find_table(storage, request.table_name);
 
     if (!table) {
         return xml_api_make_error("table with the specified name is not exists");
@@ -59,8 +59,9 @@ static xmlDoc * handle_request_drop_table(struct xml_api_drop_table_request requ
     return xml_api_make_success_no_body();
 }
 
-static xmlDoc * map_columns_to_indexes(unsigned int request_columns_amount, char ** request_columns_names,
-    struct storage_joined_table * table, unsigned int * columns_amount, unsigned int ** columns_indexes) {
+static xmlDoc *map_columns_to_indexes(unsigned int request_columns_amount, char **request_columns_names,
+                                      struct storage_joined_table *table, unsigned int *columns_amount,
+                                      unsigned int **columns_indexes) {
     unsigned int columns_count = request_columns_amount;
 
     uint16_t table_columns_amount = storage_joined_table_get_columns_amount(table);
@@ -101,8 +102,9 @@ static xmlDoc * map_columns_to_indexes(unsigned int request_columns_amount, char
     return NULL;
 }
 
-static xmlDoc * check_values(unsigned int request_values_amount, struct storage_value ** request_values_values,
-    struct storage_table * table, unsigned int columns_amount, const unsigned int * columns_indexes) {
+static xmlDoc *check_values(unsigned int request_values_amount, struct storage_value **request_values_values,
+                            struct storage_table *table, unsigned int columns_amount,
+                            const unsigned int *columns_indexes) {
 
     if (request_values_amount != columns_amount) {
         return xml_api_make_error("values amount is not equals to columns amount");
@@ -145,8 +147,8 @@ static xmlDoc * check_values(unsigned int request_values_amount, struct storage_
                 break;
         }
 
-        const char * col_type = storage_column_type_to_string(column.type);
-        const char * val_type = storage_column_type_to_string(request_values_values[i]->type);
+        const char *col_type = storage_column_type_to_string(column.type);
+        const char *val_type = storage_column_type_to_string(request_values_values[i]->type);
         size_t msg_length = 47 + strlen(column.name) + strlen(col_type) + strlen(val_type);
 
         char msg[msg_length];
@@ -158,16 +160,16 @@ static xmlDoc * check_values(unsigned int request_values_amount, struct storage_
     return NULL;
 }
 
-static xmlDoc * handle_request_insert(struct xml_api_insert_request request, struct storage * storage) {
-    struct storage_table * table = storage_find_table(storage, request.table_name);
+static xmlDoc *handle_request_insert(struct xml_api_insert_request request, struct storage *storage) {
+    struct storage_table *table = storage_find_table(storage, request.table_name);
 
     if (!table) {
         return xml_api_make_error("table with the specified name is not exists");
     }
 
     unsigned int columns_amount;
-    unsigned int * columns_indexes;
-    struct storage_joined_table * joined_table = storage_joined_table_wrap(table);
+    unsigned int *columns_indexes;
+    struct storage_joined_table *joined_table = storage_joined_table_wrap(table);
 
     {
         xmlDoc *error = map_columns_to_indexes(request.columns.amount, request.columns.columns,
@@ -180,7 +182,8 @@ static xmlDoc * handle_request_insert(struct xml_api_insert_request request, str
     }
 
     {
-        xmlDoc * error = check_values(request.values.amount, request.values.values, table, columns_amount, columns_indexes);
+        xmlDoc *error = check_values(request.values.amount, request.values.values, table, columns_amount,
+                                     columns_indexes);
 
         if (error) {
             free(columns_indexes);
@@ -189,7 +192,7 @@ static xmlDoc * handle_request_insert(struct xml_api_insert_request request, str
         }
     }
 
-    struct storage_row * row = storage_table_add_row(table);
+    struct storage_row *row = storage_table_add_row(table);
     for (unsigned int i = 0; i < columns_amount; ++i) {
         storage_row_set_value(row, columns_indexes[i], request.values.values[i]);
     }
@@ -200,7 +203,7 @@ static xmlDoc * handle_request_insert(struct xml_api_insert_request request, str
     return xml_api_make_success_no_body();
 }
 
-static xmlDoc * is_where_correct(struct storage_joined_table * table, struct xml_api_where * where) {
+static xmlDoc *is_where_correct(struct storage_joined_table *table, struct xml_api_where *where) {
     uint16_t table_columns_amount = storage_joined_table_get_columns_amount(table);
 
     switch (where->op) {
@@ -246,8 +249,8 @@ static xmlDoc * is_where_correct(struct storage_joined_table * table, struct xml
                             break;
                     }
 
-                    const char * column_type = storage_column_type_to_string(column.type);
-                    const char * value_type = storage_column_type_to_string(where->value->type);
+                    const char *column_type = storage_column_type_to_string(column.type);
+                    const char *value_type = storage_column_type_to_string(where->value->type);
                     size_t msg_length = 31 + strlen(column_type) + strlen(value_type);
                     char msg[msg_length];
 
@@ -266,9 +269,8 @@ static xmlDoc * is_where_correct(struct storage_joined_table * table, struct xml
             }
 
         case XML_API_OPERATOR_AND:
-        case XML_API_OPERATOR_OR:
-        {
-            xmlDoc * left = is_where_correct(table, where->left);
+        case XML_API_OPERATOR_OR: {
+            xmlDoc *left = is_where_correct(table, where->left);
             if (left != NULL) {
                 return left;
             }
@@ -495,7 +497,7 @@ static bool compare_values_not_null(enum xml_api_operator op, struct storage_val
     }
 }
 
-static bool compare_values(enum xml_api_operator op, struct storage_value * left, struct storage_value * right) {
+static bool compare_values(enum xml_api_operator op, struct storage_value *left, struct storage_value *right) {
     switch (op) {
         case XML_API_OPERATOR_EQ:
             if (left == NULL || right == NULL) {
@@ -528,7 +530,7 @@ static bool compare_values(enum xml_api_operator op, struct storage_value * left
     return compare_values_not_null(op, *left, *right);
 }
 
-static bool eval_where(struct storage_joined_row * row, struct xml_api_where * where) {
+static bool eval_where(struct storage_joined_row *row, struct xml_api_where *where) {
     uint16_t table_columns_amount = storage_joined_table_get_columns_amount(row->table);
 
     switch (where->op) {
@@ -555,17 +557,17 @@ static bool eval_where(struct storage_joined_row * row, struct xml_api_where * w
     }
 }
 
-static xmlDoc * handle_request_delete(struct xml_api_delete_request request, struct storage * storage) {
-    struct storage_table * table = storage_find_table(storage, request.table_name);
+static xmlDoc *handle_request_delete(struct xml_api_delete_request request, struct storage *storage) {
+    struct storage_table *table = storage_find_table(storage, request.table_name);
 
     if (!table) {
         return xml_api_make_error("table with the specified name is not exists");
     }
 
-    struct storage_joined_table * joined_table = storage_joined_table_wrap(table);
+    struct storage_joined_table *joined_table = storage_joined_table_wrap(table);
 
     if (request.where) {
-        xmlDoc * error = is_where_correct(joined_table, request.where);
+        xmlDoc *error = is_where_correct(joined_table, request.where);
 
         if (error) {
             storage_joined_table_delete(joined_table);
@@ -574,7 +576,8 @@ static xmlDoc * handle_request_delete(struct xml_api_delete_request request, str
     }
 
     unsigned long long amount = 0;
-    for (struct storage_joined_row * row = storage_joined_table_get_first_row(joined_table); row; row = storage_joined_row_next(row)) {
+    for (struct storage_joined_row *row = storage_joined_table_get_first_row(
+            joined_table); row; row = storage_joined_row_next(row)) {
         if (request.where == NULL || eval_where(row, request.where)) {
             storage_row_remove(row->rows[0]);
             ++amount;
@@ -590,18 +593,18 @@ static xmlDoc * handle_request_delete(struct xml_api_delete_request request, str
     return xml_api_make_success(responseNode);
 }
 
-static xmlDoc * handle_request_select(struct xml_api_select_request request, struct storage * storage) {
+static xmlDoc *handle_request_select(struct xml_api_select_request request, struct storage *storage) {
     if (request.limit > 1000) {
         return xml_api_make_error("limit is too high");
     }
 
-    struct storage_table * table = storage_find_table(storage, request.table_name);
+    struct storage_table *table = storage_find_table(storage, request.table_name);
 
     if (!table) {
         return xml_api_make_error("table with the specified name is not exists");
     }
 
-    struct storage_joined_table * joined_table = storage_joined_table_new(request.joins.amount + 1);
+    struct storage_joined_table *joined_table = storage_joined_table_new(request.joins.amount + 1);
     joined_table->tables.tables[0].table = table;
     joined_table->tables.tables[0].t_column_index = 0;
     joined_table->tables.tables[0].s_column_index = 0;
@@ -616,13 +619,15 @@ static xmlDoc * handle_request_select(struct xml_api_select_request request, str
 
         joined_table->tables.tables[i + 1].t_column_index = (uint16_t) -1;
         for (int j = 0; j < joined_table->tables.tables[i + 1].table->columns.amount; ++j) {
-            if (strcmp(request.joins.joins[i].t_column, joined_table->tables.tables[i + 1].table->columns.columns[j].name) == 0) {
+            if (strcmp(request.joins.joins[i].t_column,
+                       joined_table->tables.tables[i + 1].table->columns.columns[j].name) == 0) {
                 joined_table->tables.tables[i + 1].t_column_index = j;
                 break;
             }
         }
 
-        if (joined_table->tables.tables[i + 1].t_column_index >= joined_table->tables.tables[i + 1].table->columns.amount) {
+        if (joined_table->tables.tables[i + 1].t_column_index >=
+            joined_table->tables.tables[i + 1].table->columns.amount) {
             storage_joined_table_delete(joined_table);
             return xml_api_make_error("column with the specified name is not exists in table");
         }
@@ -630,8 +635,10 @@ static xmlDoc * handle_request_select(struct xml_api_select_request request, str
         uint16_t slice_columns = 0;
         joined_table->tables.tables[i + 1].s_column_index = (uint16_t) -1;
         for (int tbl_index = 0, col_index = 0; tbl_index <= i; ++tbl_index) {
-            for (int tbl_col_index = 0; tbl_col_index < joined_table->tables.tables[tbl_index].table->columns.amount; ++tbl_col_index, ++col_index) {
-                if (strcmp(request.joins.joins[i].s_column, joined_table->tables.tables[tbl_index].table->columns.columns[tbl_col_index].name) == 0) {
+            for (int tbl_col_index = 0; tbl_col_index <
+                                        joined_table->tables.tables[tbl_index].table->columns.amount; ++tbl_col_index, ++col_index) {
+                if (strcmp(request.joins.joins[i].s_column,
+                           joined_table->tables.tables[tbl_index].table->columns.columns[tbl_col_index].name) == 0) {
                     joined_table->tables.tables[i + 1].s_column_index = col_index;
                     break;
                 }
@@ -650,7 +657,7 @@ static xmlDoc * handle_request_select(struct xml_api_select_request request, str
     }
 
     if (request.where) {
-        xmlDoc * error = is_where_correct(joined_table, request.where);
+        xmlDoc *error = is_where_correct(joined_table, request.where);
 
         if (error) {
             storage_joined_table_delete(joined_table);
@@ -659,11 +666,11 @@ static xmlDoc * handle_request_select(struct xml_api_select_request request, str
     }
 
     unsigned int columns_amount;
-    unsigned int * columns_indexes;
+    unsigned int *columns_indexes;
 
     {
-        xmlDoc * error = map_columns_to_indexes(request.columns.amount, request.columns.columns,
-            joined_table, &columns_amount, &columns_indexes);
+        xmlDoc *error = map_columns_to_indexes(request.columns.amount, request.columns.columns,
+                                               joined_table, &columns_amount, &columns_indexes);
 
         if (error) {
             storage_joined_table_delete(joined_table);
@@ -676,7 +683,8 @@ static xmlDoc * handle_request_select(struct xml_api_select_request request, str
         xmlNodePtr columnsNode = xmlNewNode(NULL, BAD_CAST "columns");
 
         for (unsigned int i = 0; i < columns_amount; ++i) {
-            xmlNodePtr textNode = xmlNewText(BAD_CAST storage_joined_table_get_column(joined_table, columns_indexes[i]).name);
+            xmlNodePtr textNode = xmlNewText(
+                    BAD_CAST storage_joined_table_get_column(joined_table, columns_indexes[i]).name);
             xmlNodePtr columnNode = xmlNewNode(NULL, BAD_CAST "column");
             xmlAddChild(columnNode, textNode);
             xmlAddChild(columnsNode, columnNode);
@@ -689,7 +697,8 @@ static xmlDoc * handle_request_select(struct xml_api_select_request request, str
         xmlNodePtr valuesNode = xmlNewNode(NULL, BAD_CAST "values");
 
         unsigned int offset = 0, amount = 0;
-        for (struct storage_joined_row * row = storage_joined_table_get_first_row(joined_table); row; row = storage_joined_row_next(row)) {
+        for (struct storage_joined_row *row = storage_joined_table_get_first_row(
+                joined_table); row; row = storage_joined_row_next(row)) {
             if (request.where == NULL || eval_where(row, request.where)) {
                 if (offset < request.offset) {
                     ++offset;
@@ -703,8 +712,10 @@ static xmlDoc * handle_request_select(struct xml_api_select_request request, str
                 xmlNodePtr rowNode = xmlNewNode(NULL, BAD_CAST "row");
 
                 for (unsigned int i = 0; i < columns_amount; ++i) {
-                    xmlNodePtr textNode = xmlNewText(BAD_CAST storage_joined_table_get_column(joined_table, columns_indexes[i]).name);
+                    struct storage_value *val = storage_joined_row_get_value(row, columns_indexes[i]);
+                    xmlNodePtr textNode = xml_api_from_value(val);
                     xmlNodePtr valueNode = xmlNewNode(NULL, BAD_CAST "value");
+                    xmlNewProp(valueNode, BAD_CAST "type", BAD_CAST val->type);
                     xmlAddChild(valueNode, textNode);
                     xmlAddChild(rowNode, valueNode);
                 }
@@ -721,17 +732,17 @@ static xmlDoc * handle_request_select(struct xml_api_select_request request, str
     return xml_api_make_success(responseNode);
 }
 
-static xmlDoc * handle_request_update(struct xml_api_update_request request, struct storage * storage) {
-    struct storage_table * table = storage_find_table(storage, request.table_name);
+static xmlDoc *handle_request_update(struct xml_api_update_request request, struct storage *storage) {
+    struct storage_table *table = storage_find_table(storage, request.table_name);
 
     if (!table) {
         return xml_api_make_error("table with the specified name is not exists");
     }
 
-    struct storage_joined_table * joined_table = storage_joined_table_wrap(table);
+    struct storage_joined_table *joined_table = storage_joined_table_wrap(table);
 
     if (request.where) {
-        xmlDoc * error = is_where_correct(joined_table, request.where);
+        xmlDoc *error = is_where_correct(joined_table, request.where);
 
         if (error) {
             storage_joined_table_delete(joined_table);
@@ -740,11 +751,11 @@ static xmlDoc * handle_request_update(struct xml_api_update_request request, str
     }
 
     unsigned int columns_amount;
-    unsigned int * columns_indexes;
+    unsigned int *columns_indexes;
 
     {
-        xmlDoc * error = map_columns_to_indexes(request.columns.amount, request.columns.columns,
-            joined_table, &columns_amount, &columns_indexes);
+        xmlDoc *error = map_columns_to_indexes(request.columns.amount, request.columns.columns,
+                                               joined_table, &columns_amount, &columns_indexes);
 
         if (error) {
             storage_joined_table_delete(joined_table);
@@ -753,7 +764,8 @@ static xmlDoc * handle_request_update(struct xml_api_update_request request, str
     }
 
     {
-        xmlDoc * error = check_values(request.values.amount, request.values.values, table, columns_amount, columns_indexes);
+        xmlDoc *error = check_values(request.values.amount, request.values.values, table, columns_amount,
+                                     columns_indexes);
 
         if (error) {
             free(columns_indexes);
@@ -763,7 +775,8 @@ static xmlDoc * handle_request_update(struct xml_api_update_request request, str
     }
 
     unsigned long long amount = 0;
-    for (struct storage_joined_row * row = storage_joined_table_get_first_row(joined_table); row; row = storage_joined_row_next(row)) {
+    for (struct storage_joined_row *row = storage_joined_table_get_first_row(
+            joined_table); row; row = storage_joined_row_next(row)) {
         if (request.where == NULL || eval_where(row, request.where)) {
             for (unsigned int i = 0; i < columns_amount; ++i) {
                 storage_row_set_value(row->rows[0], columns_indexes[i], request.values.values[i]);
@@ -783,7 +796,7 @@ static xmlDoc * handle_request_update(struct xml_api_update_request request, str
     return xml_api_make_success(responseNode);
 }
 
-static xmlDoc * handle_request(xmlDoc * request, struct storage * storage) {
+static xmlDoc *handle_request(xmlDoc *request, struct storage *storage) {
     enum xml_api_action action = xml_api_get_action(request);
 
     switch (action) {
@@ -810,7 +823,7 @@ static xmlDoc * handle_request(xmlDoc * request, struct storage * storage) {
     }
 }
 
-static void handle_client(int socket, struct storage * storage) {
+static void handle_client(int socket, struct storage *storage) {
     printf("Connected\n");
 
     while (!closing) {
@@ -837,7 +850,7 @@ static void handle_client(int socket, struct storage * storage) {
         xmlChar *xmlbuff;
         int buffersize;
         xmlDocDumpFormatMemory(response_doc, &xmlbuff, &buffersize, 1);
-        const char * response = (char *) xmlbuff;
+        const char *response = (char *) xmlbuff;
         printf("Response: \n %s\n", response);
 
         size_t response_length = strlen(response);
@@ -857,13 +870,13 @@ static void handle_client(int socket, struct storage * storage) {
     printf("Disconnected\n");
 }
 
-int main(int argc, char * argv[]) {
+int main(int argc, char *argv[]) {
     if (argc < 2) {
         return 0;
     }
 
     int fd = open(argv[1], O_RDWR);
-    struct storage * storage;
+    struct storage *storage;
 
     if (fd < 0 && errno != ENOENT) {
         perror("Error while opening file");
@@ -884,7 +897,7 @@ int main(int argc, char * argv[]) {
     // define the server address
     struct sockaddr_in server_address;
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(9002);
+    server_address.sin_port = htons(9007);
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     // bind the socket to our specified IP and port
