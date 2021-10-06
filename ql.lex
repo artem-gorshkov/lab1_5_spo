@@ -3,7 +3,11 @@
 %{
 #include <inttypes.h>
 
+#ifdef __APPLE__
 #include "../xml_api.h"
+#else
+#include "xml_api.h"
+#endif
 #include "y.tab.h"
 
 static xmlNode * create_node() {

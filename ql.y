@@ -2,7 +2,11 @@
 
 %{
 #include <string.h>
+#ifdef __APPLE__
 #include "../xml_api.h"
+#else
+#include "xml_api.h"
+#endif
 
 int yylex(void);
 void yyerror(xmlDoc ** result, char ** error, const char * str);
