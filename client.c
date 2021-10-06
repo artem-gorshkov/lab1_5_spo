@@ -107,10 +107,10 @@ static void print_table_response(xmlDoc *response) {
     }
 
     puts("|");
+    print_table_separator(columns_length, columns_width);
 
     for (row_node = values->children; row_node; row_node = row_node->next) {
         if (row_node->type == XML_ELEMENT_NODE) {
-            print_table_separator(columns_length, columns_width);
             xmlNodePtr value_node;
             int j = 0;
             for (value_node = row_node->children; value_node; value_node = value_node->next) {
@@ -119,12 +119,10 @@ static void print_table_response(xmlDoc *response) {
                     j++;
                 }
             }
+            puts("|");
+            print_table_separator(columns_length, columns_width);
         }
     }
-
-    puts("|");
-
-    print_table_separator(columns_length, columns_width);
 }
 
 static void print_response(enum xml_api_action action, xmlDoc *response) {
