@@ -191,7 +191,7 @@ static bool handle_request(int socket, xmlDoc *request) {
         fprintf(stderr, "Failed to allocate parser context\n");
     }
     /* parse, activating the DTD validation option */
-    reponse_doc = xmlCtxtReadMemory(ctxt, buffer, (int) strlen(buffer), "response.xml", NULL, XML_PARSE_DTDVALID);
+    reponse_doc = xmlCtxtReadMemory(ctxt, buffer, (int) strlen(buffer), "response.xml", NULL, XML_PARSE_DTDATTR);
     /* check if parsing succeeded */
     if (reponse_doc == NULL) {
         fprintf(stderr, "Failed to parse\n");
