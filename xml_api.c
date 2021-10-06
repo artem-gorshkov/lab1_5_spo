@@ -224,36 +224,40 @@ struct xml_api_select_request xml_api_to_select_request(xmlDoc *doc) {
         request.limit = atoi((char *) limit);
     }
 
-    xmlNodePtr columns_node = find_node(root_node, BAD_CAST "columns");
-    int columns_amount = (int) xmlChildElementCount(columns_node);
-    request.columns.amount = columns_amount;
-    request.columns.columns = malloc(sizeof(*request.columns.columns) * request.columns.amount);
     int i = 0;
-    for (curr_node = columns_node->children; curr_node; curr_node = curr_node->next) {
-        if (curr_node->type != XML_ELEMENT_NODE) {
-            continue;
+    xmlNodePtr columns_node = find_node(root_node, BAD_CAST "columns");
+    if (columns_node != NULL) {
+        int columns_amount = (int) xmlChildElementCount(columns_node);
+        request.columns.amount = columns_amount;
+        request.columns.columns = malloc(sizeof(*request.columns.columns) * request.columns.amount);
+        for (curr_node = columns_node->children; curr_node; curr_node = curr_node->next) {
+            if (curr_node->type != XML_ELEMENT_NODE) {
+                continue;
+            }
+            xmlChar *name = find_node_value(curr_node, BAD_CAST "column");
+            request.columns.columns[i] = strdup((char *) name);
+            i++;
         }
-        xmlChar *name = find_node_value(curr_node, BAD_CAST "column");
-        request.columns.columns[i] = strdup((char *) name);
-        i++;
     }
 
     xmlNodePtr joins_node = find_node(root_node, BAD_CAST "joins");
-    int joins_amount = (int) xmlChildElementCount(columns_node);
-    request.joins.amount = joins_amount;
-    request.joins.joins = malloc(sizeof(*request.joins.joins) * request.joins.amount);
-    i = 0;
-    for (curr_node = joins_node->children; curr_node; curr_node = curr_node->next) {
-        if (curr_node->type != XML_ELEMENT_NODE) {
-            continue;
+    if (joins_node != NULL) {
+        int joins_amount = (int) xmlChildElementCount(columns_node);
+        request.joins.amount = joins_amount;
+        request.joins.joins = malloc(sizeof(*request.joins.joins) * request.joins.amount);
+        i = 0;
+        for (curr_node = joins_node->children; curr_node; curr_node = curr_node->next) {
+            if (curr_node->type != XML_ELEMENT_NODE) {
+                continue;
+            }
+            xmlChar *table_name = find_node_value(curr_node, BAD_CAST "table");
+            xmlChar *t_column = find_node_value(curr_node, BAD_CAST "t_column");
+            xmlChar *s_column = find_node_value(curr_node, BAD_CAST "s_column");
+            request.joins.joins[i].table = strdup((char *) table_name);
+            request.joins.joins[i].s_column = strdup((char *) s_column);
+            request.joins.joins[i].t_column = strdup((char *) t_column);
+            i++;
         }
-        xmlChar *table_name = find_node_value(curr_node, BAD_CAST "table");
-        xmlChar *t_column = find_node_value(curr_node, BAD_CAST "t_column");
-        xmlChar *s_column = find_node_value(curr_node, BAD_CAST "s_column");
-        request.joins.joins[i].table = strdup((char *) table_name);
-        request.joins.joins[i].s_column = strdup((char *) s_column);
-        request.joins.joins[i].t_column = strdup((char *) t_column);
-        i++;
     }
 
     request.where = xml_api_to_where(root_node->doc);
@@ -268,11 +272,11 @@ struct xml_api_update_request xml_api_to_update_request(xmlDoc *doc) {
 
     request.table_name = strdup((char *) find_node_value(curr_node, BAD_CAST "table"));
 
+    int i = 0;
     xmlNodePtr columns_node = find_node(curr_node, BAD_CAST "columns");
     int columns_amount = (int) xmlChildElementCount(columns_node);
     request.columns.amount = columns_amount;
     request.columns.columns = malloc(sizeof(*request.columns.columns) * request.columns.amount);
-    int i = 0;
     for (curr_node = columns_node->children; curr_node; curr_node = curr_node->next) {
         if (curr_node->type != XML_ELEMENT_NODE) {
             continue;
