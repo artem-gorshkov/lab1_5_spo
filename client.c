@@ -23,12 +23,13 @@ static void badAnswer(xmlDoc *response) {
 
 static bool is_error_response(xmlDoc *response) {
     xmlNode *responseNode = xmlDocGetRootElement(response);
-    if (responseNode != NULL && responseNode->children != NULL &&
-            strcmp((char *) responseNode->children->name, "error") == 0) {
-        printf("Error: %s.\n", responseNode->children->children->content);
-        return true;
+    if (responseNode != NULL) {
+        xmlChar *error = find_node_value(responseNode, BAD_CAST "error");
+        if (error != NULL) {
+            printf("Error: %s.\n", error);
+            return true;
+        }
     }
-
     return false;
 }
 
