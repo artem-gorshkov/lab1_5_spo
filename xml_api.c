@@ -120,23 +120,27 @@ static struct storage_value *xml_to_storage_value(xmlNodePtr value_node, char *v
 
 struct xml_api_insert_request xml_api_to_insert_request(xmlDoc *doc) {
     struct xml_api_insert_request request;
+    request.columns.amount = 0;
+    request.columns.columns = NULL;
     xmlNodePtr root_node = xmlDocGetRootElement(doc);
     xmlNodePtr curr_node = root_node;
 
     request.table_name = strdup((char *) find_node_value(curr_node, BAD_CAST "table"));
 
-    xmlNodePtr columns_node = find_node(curr_node, BAD_CAST "columns");
-    int columns_amount = (int) xmlChildElementCount(columns_node);
-    request.columns.amount = columns_amount;
-    request.columns.columns = malloc(sizeof(*request.columns.columns) * request.columns.amount);
     int i = 0;
-    for (curr_node = columns_node->children; curr_node; curr_node = curr_node->next) {
-        if (curr_node->type != XML_ELEMENT_NODE) {
-            continue;
+    xmlNodePtr columns_node = find_node(curr_node, BAD_CAST "columns");
+    if (columns_node != NULL) {
+        int columns_amount = (int) xmlChildElementCount(columns_node);
+        request.columns.amount = columns_amount;
+        request.columns.columns = malloc(sizeof(*request.columns.columns) * request.columns.amount);
+        for (curr_node = columns_node->children; curr_node; curr_node = curr_node->next) {
+            if (curr_node->type != XML_ELEMENT_NODE) {
+                continue;
+            }
+            xmlChar *name = find_node_value(curr_node, BAD_CAST "column");
+            request.columns.columns[i] = strdup((char *) name);
+            i++;
         }
-        xmlChar *name = find_node_value(curr_node, BAD_CAST "column");
-        request.columns.columns[i] = strdup((char *) name);
-        i++;
     }
 
     xmlNodePtr values_node = find_node(root_node, BAD_CAST "values");
@@ -186,7 +190,7 @@ static struct xml_api_where *do_xml_api_to_where(xmlNode *node) {
 static struct xml_api_where *xml_api_to_where(xmlDoc *doc) {
     xmlNodePtr root_node = xmlDocGetRootElement(doc);
     xmlNodePtr where_node = find_node(root_node, BAD_CAST "where");
-    return do_xml_api_to_where(where_node);
+    return where_node == NULL ? NULL : do_xml_api_to_where(where_node);
 }
 
 struct xml_api_delete_request xml_api_to_delete_request(xmlDoc *doc) {
