@@ -82,7 +82,9 @@ columns_declaration_list_req
 column_declaration
     : name type_node     {
         $$ = xmlNewNode(NULL, BAD_CAST "column");
-        xmlAddChild($$, $1);
+        xmlNodePtr nameNode = xmlNewNode(NULL, BAD_CAST "name");
+        xmlAddChild(nameNode, $1);
+        xmlAddChild($$, nameNode);
         xmlAddChild($$, $2);
     }
     ;

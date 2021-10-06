@@ -827,7 +827,7 @@ static void handle_client(int socket, struct storage * storage) {
             buffer[was_read] = '\0';
         }
         xmlDoc *request = xmlReadMemory(buffer, (int) strlen(buffer), "action.tmp", 0, 0);
-        printf("Request: %s\n", buffer);
+        printf("Request:\n %s\n", buffer);
 
         xmlDoc *response_doc = NULL;
 
@@ -884,7 +884,7 @@ int main(int argc, char * argv[]) {
     // define the server address
     struct sockaddr_in server_address;
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(9002);
+    server_address.sin_port = htons(9004);
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     // bind the socket to our specified IP and port
