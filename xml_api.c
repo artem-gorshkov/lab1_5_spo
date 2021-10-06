@@ -1,7 +1,7 @@
 #include "xml_api.h"
 #include <errno.h>
 
-static xmlChar *find_node_value(xmlNodePtr root_node, xmlChar *target_node) {
+xmlChar *find_node_value(xmlNodePtr root_node, xmlChar *target_node) {
     xmlNodePtr curr_node;
 
     for (curr_node = root_node; curr_node; curr_node = curr_node->next) {

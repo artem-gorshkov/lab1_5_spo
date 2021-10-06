@@ -166,7 +166,6 @@ values_list_req
 
 value
     : T_INT_LITERAL     { $$ = $1; }
-    | T_UINT_LITERAL    { $$ = $1; }
     | T_NUM_LITERAL     { $$ = $1; }
     | T_STR_LITERAL     { $$ = $1; }
     | T_NULL            { $$ = $1; }

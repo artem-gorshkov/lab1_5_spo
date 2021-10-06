@@ -246,3 +246,5 @@ xmlDoc * xml_api_make_error(const char *msg);
 xmlNode * xml_api_from_value(struct storage_value *value);
 
 xmlNodePtr find_node(xmlNodePtr root_node, xmlChar *target_node);
+
+xmlChar *find_node_value(xmlNodePtr root_node, xmlChar *target_node);

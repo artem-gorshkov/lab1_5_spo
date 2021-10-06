@@ -119,7 +119,7 @@ or          return T_OR_OP;
 null    yylval = create_null_node(); return T_NULL;
 {I}     yylval = create_node(); return T_IDENTIFIER;
 
--{D}+               yylval = create_value_node("0"); return T_INT_LITERAL;
+-?{D}+               yylval = create_value_node("0"); return T_INT_LITERAL;
 {D}*\.{D}+          yylval = create_value_node("2"); return T_NUM_LITERAL;
 \'(\\.|[^'\\])*\'   yylval = create_value_node("3"); return T_STR_LITERAL;
 \"(\\.|[^"\\])*\"   yylval = create_node(); return T_DBL_QUOTED;
