@@ -83,12 +83,16 @@ static void print_table_response(xmlDoc *response) {
 
     xmlNodePtr row_node;
     for (row_node = values->children; row_node; row_node = row_node->next) {
-        xmlNodePtr value_node;
-        int j = 0;
-        for (value_node = row_node->children; value_node; value_node = value_node->next) {
-            int width = (int) strlen((char *) value_node->children->content);
-            columns_width[j] = columns_width[j] > width ? columns_width[j] : width;
-            j++;
+        if (row_node->type == XML_ELEMENT_NODE) {
+            xmlNodePtr value_node;
+            int j = 0;
+            for (value_node = row_node->children; value_node; value_node = value_node->next) {
+                if (value_node->type == XML_ELEMENT_NODE) {
+                    int width = (int) strlen((char *) value_node->children->content);
+                    columns_width[j] = columns_width[j] > width ? columns_width[j] : width;
+                    j++;
+                }
+            }
         }
     }
 
@@ -96,22 +100,29 @@ static void print_table_response(xmlDoc *response) {
 
     i = 0;
     for (column_node = columns->children; column_node; column_node = column_node->next) {
-        printf("| %*s ", columns_width[i], (char *) column_node->children->content);
-        i++;
+        if (column_node->type == XML_ELEMENT_NODE) {
+            printf("| %*s ", columns_width[i], (char *) column_node->children->content);
+            i++;
+        }
     }
 
     puts("|");
 
     for (row_node = values->children; row_node; row_node = row_node->next) {
-        print_table_separator(columns_length, columns_width);
-        xmlNodePtr value_node;
-        int j = 0;
-        for (value_node = row_node->children; value_node; value_node = value_node->next) {
-            printf("| %*s ", columns_width[j], (char *) value_node->children->content);
-            j++;
+        if (row_node->type == XML_ELEMENT_NODE) {
+            print_table_separator(columns_length, columns_width);
+            xmlNodePtr value_node;
+            int j = 0;
+            for (value_node = row_node->children; value_node; value_node = value_node->next) {
+                if (value_node->type == XML_ELEMENT_NODE) {
+                    printf("| %*s ", columns_width[j], (char *) value_node->children->content);
+                    j++;
+                }
+            }
         }
-        puts("|");
     }
+
+    puts("|");
 
     print_table_separator(columns_length, columns_width);
 }
