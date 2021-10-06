@@ -43,7 +43,7 @@
 //		...
 //	</columns>
 //	<values>
-//		<value>value</value>
+//		<value type={0/1/2/3} null="true">value</value>
 //		...
 //	</values>
 //</request>
@@ -100,7 +100,7 @@
 //		...
 //	</columns>
 //	<values>
-//		<value>value</value>
+//		<value type={0/1/2/3} null="true">value</value>
 //		...
 //	</values>
 //	<where>where</where>
@@ -114,7 +114,7 @@
 //<where>
 //	<op>{0/1/2/3/4/5}</op>
 //	<column>name</column>
-//	<value>value</value>
+//	<value type={0,1,2,3} null="true">value</value>
 //</where>
 //
 //<where>

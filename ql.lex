@@ -1,28 +1,32 @@
 %option noyywrap case-insensitive
 
 %{
-#include <json-c/json.h>
+#include <inttypes.h>
 
+#include "../xml_api.h"
 #include "y.tab.h"
 
-static struct json_object * quoted_str() {
-    char * str = malloc(sizeof(*str) * yyleng);
+static xmlNode * create_node() {
+    char* text = malloc(sizeof(char) * (yyleng + 1));
 
-    int j = 0;
-    for (int i = 1; i < yyleng - 1; ++i, ++j) {
-        if (yytext[i] == '\\') {
-            ++i;
-        }
+    memcpy(text, yytext, yyleng);
+    text[yyleng] = '\0';
 
-        str[j] = yytext[i];
-    }
+    return xmlNewText(BAD_CAST text);
+}
 
-    str[j] = '\0';
+static xmlNode * create_value_node(char * type) {
+    xmlNode * textNode = create_node();
+    xmlNode * valueNode = xmlNewNode(NULL, BAD_CAST "value");
+    xmlAddChild(valueNode, textNode);
+    xmlNewProp(valueNode, BAD_CAST "type", BAD_CAST type);
+    return valueNode;
+}
 
-    struct json_object * result = json_object_new_string(str);
-    free(str);
-
-    return result;
+static xmlNode * create_null_node() {
+    xmlNode * valueNode = xmlNewNode(NULL, BAD_CAST "value");
+    xmlNewProp(valueNode, BAD_CAST "null", BAD_CAST "");
+    return valueNode;
 }
 
 static int64_t int_literal() {
@@ -32,7 +36,7 @@ static int64_t int_literal() {
     str[yyleng] = '\0';
 
     int64_t val;
-    sscanf(str, "%ld", &val);
+    sscanf(str, "%"SCNi64, &val);
     free(str);
 
     return val;
@@ -45,7 +49,7 @@ static uint64_t uint_literal() {
     str[yyleng] = '\0';
 
     uint64_t val;
-    sscanf(str, "%lu", &val);
+    sscanf(str, "%"SCNu64, &val);
     free(str);
 
     return val;
@@ -78,13 +82,11 @@ I {W}({W}|{D})*
 create      return T_CREATE;
 table       return T_TABLE;
 int         return T_INT;
-uint        return T_UINT;
 num         return T_NUM;
 str         return T_STR;
 drop        return T_DROP;
 insert      return T_INSERT;
 values      return T_VALUES;
-null        return T_NULL;
 into        return T_INTO;
 delete      return T_DELETE;
 from        return T_FROM;
@@ -110,13 +112,13 @@ and         return T_AND_OP;
 or          return T_OR_OP;
 "||"        return T_OR_OP;
 
-{I}     yylval = json_object_new_string_len(yytext, yyleng); return T_IDENTIFIER;
+null    yylval = create_null_node(); return T_NULL;
+{I}     yylval = create_node(); return T_IDENTIFIER;
 
--{D}+               yylval = json_object_new_int64(int_literal()); return T_INT_LITERAL;
-{D}+                yylval = json_object_new_uint64(uint_literal()); return T_UINT_LITERAL;
-{D}*\.{D}+          yylval = json_object_new_double(num_literal()); return T_NUM_LITERAL;
-\'(\\.|[^'\\])*\'   yylval = quoted_str(); return T_STR_LITERAL;
-\"(\\.|[^"\\])*\"   yylval = quoted_str(); return T_DBL_QUOTED;
+-{D}+               yylval = create_value_node("0"); return T_INT_LITERAL;
+{D}*\.{D}+          yylval = create_value_node("2"); return T_NUM_LITERAL;
+\'(\\.|[^'\\])*\'   yylval = create_value_node("3"); return T_STR_LITERAL;
+\"(\\.|[^"\\])*\"   yylval = create_node(); return T_DBL_QUOTED;
 
 .       return yytext[0];
 

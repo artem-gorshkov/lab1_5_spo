@@ -1,15 +1,14 @@
-%parse-param {struct json_object ** result} {char ** error}
+%parse-param {xmlDoc ** result} {char ** error}
 
 %{
 #include <string.h>
-
-#include "../json_api.h"
+#include "../xml_api.h"
 
 int yylex(void);
-void yyerror(struct json_object ** result, char ** error, const char * str);
+void yyerror(xmlDoc ** result, char ** error, const char * str);
 %}
 
-%define api.value.type {struct json_object *}
+%define api.value.type {xmlNode *}
 
 %token T_CREATE T_TABLE T_IDENTIFIER T_DBL_QUOTED T_INT T_UINT T_NUM T_STR T_DROP T_INSERT T_VALUES T_INTO
     T_INT_LITERAL T_UINT_LITERAL T_NUM_LITERAL T_STR_LITERAL T_NULL T_DELETE T_FROM T_WHERE T_JOIN T_ON
@@ -21,7 +20,7 @@ void yyerror(struct json_object ** result, char ** error, const char * str);
 %%
 
 command_line
-    : command semi_non_req YYEOF    { *result = $1; }
+    : command semi_non_req YYEOF    { *result = xmlNewDoc(BAD_CAST "1.0");  xmlDocSetRootElement(*result, $1); }
     | YYEOF                         { *result = NULL; }
     ;
 
@@ -36,16 +35,23 @@ command
     | insert_command        { $$ = $1; }
     | delete_command        { $$ = $1; }
     | select_command        { $$ = $1; }
-    | update_command        { $$ = $1; }
+//    | update_command        { $$ = $1; }
     ;
 
 create_table_command
     : T_CREATE t_table_non_req name '(' columns_declaration_list ')'    {
-        $$ = json_object_new_object();
+        $$ = xmlNewNode(NULL, BAD_CAST "request");
 
-        json_object_object_add($$, "action", json_object_new_int(0));
-        json_object_object_add($$, "table", $3);
-        json_object_object_add($$, "columns", $5);
+        xmlNodePtr actionNode = xmlNewNode(NULL, BAD_CAST "action");
+        xmlNodePtr textActionNode = xmlNewText(BAD_CAST "0");
+        xmlAddChild(actionNode, textActionNode);
+        xmlAddChild($$, actionNode);
+
+        xmlNodePtr tableNode = xmlNewNode(NULL, BAD_CAST "table");
+        xmlAddChild(tableNode, $3);
+        xmlAddChild($$, tableNode);
+
+        xmlAddChild($$, $5);
     }
     ;
 
@@ -65,45 +71,58 @@ columns_declaration_list
     ;
 
 columns_declaration_list_req
-    : column_declaration                                    { $$ = json_object_new_array(); json_object_array_add($$, $1); }
-    | columns_declaration_list_req ',' column_declaration   { $$ = $1; json_object_array_add($$, $3); }
+    : column_declaration                                    { $$ = xmlNewNode(NULL, BAD_CAST "columns"); xmlAddChild($$, $1); }
+    | columns_declaration_list_req ',' column_declaration   { $$ = $1; xmlAddChild($$, $3); }
     ;
 
 column_declaration
-    : name type     {
-        $$ = json_object_new_object();
-        json_object_object_add($$, "name", $1);
-        json_object_object_add($$, "type", $2);
+    : name type_node     {
+        $$ = xmlNewNode(NULL, BAD_CAST "column");
+        xmlAddChild($$, $1);
+        xmlAddChild($$, $2);
     }
     ;
 
+type_node
+    : type { $$ = xmlNewNode(NULL, BAD_CAST "type"); xmlAddChild($$, $1); }
+
 type
-    : T_INT     { $$ = json_object_new_int(STORAGE_COLUMN_TYPE_INT); }
-    | T_UINT    { $$ = json_object_new_int(STORAGE_COLUMN_TYPE_UINT); }
-    | T_NUM     { $$ = json_object_new_int(STORAGE_COLUMN_TYPE_NUM); }
-    | T_STR     { $$ = json_object_new_int(STORAGE_COLUMN_TYPE_STR); }
+    : T_INT     { $$ = xmlNewText(BAD_CAST "0"); }
+    | T_NUM     { $$ = xmlNewText(BAD_CAST "2"); }
+    | T_STR     { $$ = xmlNewText(BAD_CAST "3"); }
     ;
 
 drop_table_command
     : T_DROP t_table_non_req name   {
-        $$ = json_object_new_object();
-        json_object_object_add($$, "action", json_object_new_int(1));
-        json_object_object_add($$, "table", $3);
+        $$ = xmlNewNode(NULL, BAD_CAST "request");
+
+        xmlNodePtr actionNode = xmlNewNode(NULL, BAD_CAST "action");
+        xmlNodePtr textActionNode = xmlNewText(BAD_CAST "1");
+        xmlAddChild(actionNode, textActionNode);
+        xmlAddChild($$, actionNode);
+
+        xmlNodePtr tableNode = xmlNewNode(NULL, BAD_CAST "table");
+        xmlAddChild(tableNode, $3);
+        xmlAddChild($$, tableNode);
+
     }
     ;
 
 insert_command
     : T_INSERT t_into_non_req name braced_names_list_non_req T_VALUES '(' values_list ')'   {
-        $$ = json_object_new_object();
+        $$ = xmlNewNode(NULL, BAD_CAST "request");
 
-        json_object_object_add($$, "action", json_object_new_int(2));
-        json_object_object_add($$, "table", $3);
+        xmlNodePtr actionNode = xmlNewNode(NULL, BAD_CAST "action");
+        xmlNodePtr textActionNode = xmlNewText(BAD_CAST "2");
+        xmlAddChild(actionNode, textActionNode);
+        xmlAddChild($$, actionNode);
 
-        if ($4) {
-            json_object_object_add($$, "columns", $4);
-        }
+        xmlNodePtr tableNode = xmlNewNode(NULL, BAD_CAST "table");
+        xmlAddChild(tableNode, $3);
+        xmlAddChild($$, tableNode);
 
-        json_object_object_add($$, "values", $7);
+        xmlAddChild($$, $4);
+        xmlAddChild($$, $7);
     }
     ;
 
@@ -122,9 +141,12 @@ braced_names_list
     ;
 
 names_list_req
-    : name                      { $$ = json_object_new_array(); json_object_array_add($$, $1); }
-    | names_list_req ',' name   { $$ = $1; json_object_array_add($$, $3); }
+    : column_name                     { $$ = xmlNewNode(NULL, BAD_CAST "columns"); xmlAddChild($$, $1);  }
+    | names_list_req ',' column_name   { $$ = $1; xmlAddChild($$, $3); }
     ;
+
+column_name
+    : name { $$ = xmlNewNode(NULL, BAD_CAST "column"); xmlAddChild($$, $1); }
 
 values_list
     : /* empty */       { $$ = NULL; }
@@ -132,8 +154,8 @@ values_list
     ;
 
 values_list_req
-    : value                     { $$ = json_object_new_array(); json_object_array_add($$, $1); }
-    | values_list_req ',' value { $$ = $1; json_object_array_add($$, $3); }
+    : value                     { $$ = xmlNewNode(NULL, BAD_CAST "values"); xmlAddChild($$, $1); }
+    | values_list_req ',' value { $$ = $1; xmlAddChild($$, $3); }
     ;
 
 value
@@ -141,18 +163,24 @@ value
     | T_UINT_LITERAL    { $$ = $1; }
     | T_NUM_LITERAL     { $$ = $1; }
     | T_STR_LITERAL     { $$ = $1; }
-    | T_NULL            { $$ = NULL; }
+    | T_NULL            { $$ = $1; }
     ;
 
 delete_command
     : T_DELETE T_FROM name where_stmt_non_req   {
-        $$ = json_object_new_object();
+        $$ = xmlNewNode(NULL, BAD_CAST "request");
 
-        json_object_object_add($$, "action", json_object_new_int(3));
-        json_object_object_add($$, "table", $3);
+        xmlNodePtr actionNode = xmlNewNode(NULL, BAD_CAST "action");
+        xmlNodePtr textActionNode = xmlNewText(BAD_CAST "3");
+        xmlAddChild(actionNode, textActionNode);
+        xmlAddChild($$, actionNode);
+
+        xmlNodePtr tableNode = xmlNewNode(NULL, BAD_CAST "table");
+        xmlAddChild(tableNode, $3);
+        xmlAddChild($$, tableNode);
 
         if ($4) {
-            json_object_object_add($$, "where", $4);
+            xmlAddChild($$, $4);
         }
     }
     ;
@@ -169,59 +197,88 @@ where_stmt
 where_expr
     : '(' where_expr ')'            { $$ = $2; }
     | name where_value_op value     {
-        $$ = json_object_new_object();
-        json_object_object_add($$, "op", $2);
-        json_object_object_add($$, "column", $1);
-        json_object_object_add($$, "value", $3);
+        $$ = xmlNewNode(NULL, BAD_CAST "where");
+
+        xmlAddChild($$, $2);
+
+        xmlNodePtr columnNode = xmlNewNode(NULL, BAD_CAST "column");
+        xmlAddChild(columnNode, $1);
+        xmlAddChild($$, columnNode);
+
+        xmlAddChild($$, $3);
     }
     | where_expr T_AND_OP where_expr    {
-        $$ = json_object_new_object();
-        json_object_object_add($$, "op", json_object_new_int(JSON_API_OPERATOR_AND));
-        json_object_object_add($$, "left", $1);
-        json_object_object_add($$, "right", $3);
+        $$ = xmlNewNode(NULL, BAD_CAST "where");
+
+        xmlNodePtr opNode = xmlNewNode(NULL, BAD_CAST "op");
+        xmlAddChild(opNode, xmlNewText(BAD_CAST XML_API_OPERATOR_AND));
+        xmlAddChild($$, opNode);
+
+        xmlNodePtr leftNode = xmlNewNode(NULL, BAD_CAST "left");
+        xmlAddChild(leftNode, $1);
+        xmlAddChild($$, leftNode);
+
+        xmlNodePtr rightNode = xmlNewNode(NULL, BAD_CAST "left");
+        xmlAddChild(rightNode, $3);
+        xmlAddChild($$, rightNode);
     }
     | where_expr T_OR_OP where_expr     {
-        $$ = json_object_new_object();
-        json_object_object_add($$, "op", json_object_new_int(JSON_API_OPERATOR_OR));
-        json_object_object_add($$, "left", $1);
-        json_object_object_add($$, "right", $3);
+        $$ = xmlNewNode(NULL, BAD_CAST "where");
+
+        xmlNodePtr opNode = xmlNewNode(NULL, BAD_CAST "op");
+        xmlAddChild(opNode, xmlNewText(BAD_CAST XML_API_OPERATOR_OR));
+        xmlAddChild($$, opNode);
+
+        xmlNodePtr leftNode = xmlNewNode(NULL, BAD_CAST "left");
+        xmlAddChild(leftNode, $1);
+        xmlAddChild($$, leftNode);
+
+        xmlNodePtr rightNode = xmlNewNode(NULL, BAD_CAST "left");
+        xmlAddChild(rightNode, $3);
+        xmlAddChild($$, rightNode);
     }
     ;
 
 where_value_op
-    : T_EQ_OP   { $$ = json_object_new_int(JSON_API_OPERATOR_EQ); }
-    | T_NE_OP   { $$ = json_object_new_int(JSON_API_OPERATOR_NE); }
-    | T_LT_OP   { $$ = json_object_new_int(JSON_API_OPERATOR_LT); }
-    | T_GT_OP   { $$ = json_object_new_int(JSON_API_OPERATOR_GT); }
-    | T_LE_OP   { $$ = json_object_new_int(JSON_API_OPERATOR_LE); }
-    | T_GE_OP   { $$ = json_object_new_int(JSON_API_OPERATOR_GE); }
+    : T_EQ_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST XML_API_OPERATOR_EQ));}
+    | T_NE_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST XML_API_OPERATOR_NE));}
+    | T_LT_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST XML_API_OPERATOR_LT));}
+    | T_GT_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST XML_API_OPERATOR_GT));}
+    | T_LE_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST XML_API_OPERATOR_LE));}
+    | T_GE_OP   { $$ =xmlNewNode(NULL, BAD_CAST "op"); xmlAddChild($$, xmlNewText(BAD_CAST XML_API_OPERATOR_GE));}
     ;
 
 select_command
     : T_SELECT names_list_or_asterisk T_FROM name join_stmts where_stmt_non_req offset_stmt_non_req limit_stmt_non_req {
-        $$ = json_object_new_object();
+                $$ = xmlNewNode(NULL, BAD_CAST "request");
 
-        json_object_object_add($$, "action", json_object_new_int(4));
-        json_object_object_add($$, "table", $4);
+                xmlNodePtr actionNode = xmlNewNode(NULL, BAD_CAST "action");
+                xmlNodePtr textActionNode = xmlNewText(BAD_CAST "4");
+                xmlAddChild(actionNode, textActionNode);
+                xmlAddChild($$, actionNode);
+
+                xmlNodePtr tableNode = xmlNewNode(NULL, BAD_CAST "table");
+                xmlAddChild(tableNode, $4);
+                xmlAddChild($$, tableNode);
 
         if ($2) {
-            json_object_object_add($$, "columns", $2);
+            xmlAddChild($$, $2);
         }
 
         if ($5) {
-            json_object_object_add($$, "joins", $5);
+            xmlAddChild($$, $5);
         }
 
         if ($6) {
-            json_object_object_add($$, "where", $6);
+            xmlAddChild($$, $6);
         }
 
         if ($7) {
-            json_object_object_add($$, "offset", $7);
+            xmlAddChild($$, $7);
         }
 
         if ($8) {
-            json_object_object_add($$, "limit", $8);
+            xmlAddChild($$, $8);
         }
     }
     ;
@@ -237,17 +294,22 @@ join_stmts
     ;
 
 join_stmts_non_null
-    : join_stmt             { $$ = json_object_new_array(); json_object_array_add($$, $1); }
-    | join_stmts join_stmt  { $$ = $1; json_object_array_add($$, $2); }
+    : join_stmt             { $$ = xmlNewNode(NULL, BAD_CAST "joins"); xmlAddChild($$, $1); }
+    | join_stmts join_stmt  { $$ = $1; xmlAddChild($$, $2); }
     ;
 
 join_stmt
     : T_JOIN name T_ON name T_EQ_OP name    {
-        $$ = json_object_new_object();
-
-        json_object_object_add($$, "table", $2);
-        json_object_object_add($$, "t_column", $4);
-        json_object_object_add($$, "s_column", $6);
+        $$ = xmlNewNode(NULL, BAD_CAST "join");
+        xmlNodePtr tableNode = xmlNewNode(NULL, BAD_CAST "table");
+        xmlAddChild(tableNode, $2);
+        xmlAddChild($$, tableNode);
+        xmlNodePtr tNode = xmlNewNode(NULL, BAD_CAST "t_column");
+        xmlAddChild(tNode, $4);
+        xmlAddChild($$, tNode);
+        xmlNodePtr sNode = xmlNewNode(NULL, BAD_CAST "s_column");
+        xmlAddChild(sNode, $6);
+        xmlAddChild($$, sNode);
     }
     ;
 
@@ -269,44 +331,52 @@ limit_stmt
     : T_LIMIT T_UINT_LITERAL    { $$ = $2; }
     ;
 
-update_command
-    : T_UPDATE name T_SET update_values_list_req where_stmt_non_req {
-        $$ = json_object_new_object();
-
-        json_object_object_add($$, "action", json_object_new_int(5));
-        json_object_object_add($$, "table", $2);
-
-        int c = json_object_array_length($4);
-        struct json_object * columns = json_object_new_array_ext(c);
-        struct json_object * values = json_object_new_array_ext(c);
-        for (int i = 0; i < c; ++i) {
-            struct json_object * elem = json_object_array_get_idx($4, i);
-
-            json_object_array_add(columns, json_object_array_get_idx(elem, 0));
-            json_object_array_add(values, json_object_array_get_idx(elem, 1));
-        }
-
-        json_object_object_add($$, "columns", columns);
-        json_object_object_add($$, "values", values);
-
-        if ($5) {
-            json_object_object_add($$, "where", $5);
-        }
-    }
-    ;
-
-update_values_list_req
-    : update_value                              { $$ = json_object_new_array(); json_object_array_add($$, $1); }
-    | update_values_list_req ',' update_value   { $$ = $1; json_object_array_add($$, $3); }
-    ;
-
-update_value
-    : name T_EQ_OP value    { $$ = json_object_new_array(); json_object_array_add($$, $1); json_object_array_add($$, $3); }
-    ;
+//update_command
+//: T_UPDATE name T_SET update_values_list_req where_stmt_non_req {
+//$$ = xmlNewNode(NULL, BAD_CAST "request");
+//
+//xmlNodePtr actionNode = xmlNewNode(NULL, BAD_CAST "action");
+//xmlNodePtr textActionNode = xmlNewText(BAD_CAST "5");
+//xmlAddChild(actionNode, textActionNode);
+//xmlAddChild($$, actionNode);
+//
+//xmlNodePtr tableNode = xmlNewNode(NULL, BAD_CAST "table");
+//xmlAddChild(tableNode, $2);
+//xmlAddChild($$, tableNode);
+//
+//
+//
+//int c = json_object_array_length($4);
+//struct json_object * columns = json_object_new_array_ext(c);
+//struct json_object * values = json_object_new_array_ext(c);
+//for (int i = 0; i < c; ++i) {
+//struct json_object * elem = json_object_array_get_idx($4, i);
+//
+//json_object_array_add(columns, json_object_array_get_idx(elem, 0));
+//json_object_array_add(values, json_object_array_get_idx(elem, 1));
+//}
+//
+//json_object_object_add($$, "columns", columns);
+//json_object_object_add($$, "values", values);
+//
+//if ($5) {
+//json_object_object_add($$, "where", $5);
+//}
+//}
+//;
+//
+//update_values_list_req
+//: update_value                              { $$ = json_object_new_array(); json_object_array_add($$, $1); }
+//| update_values_list_req ',' update_value   { $$ = $1; json_object_array_add($$, $3); }
+//;
+//
+//update_value
+//: name T_EQ_OP value    { $$ = json_object_new_array(); json_object_array_add($$, $1); json_object_array_add($$, $3); }
+//;
 
 %%
 
-void yyerror(struct json_object ** result, char ** error, const char * str) {
+void yyerror(xmlDoc ** result, char ** error, const char * str) {
     free(*error);
 
     *error = strdup(str);

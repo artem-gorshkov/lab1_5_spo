@@ -115,10 +115,6 @@ static void print_table_response(xmlDoc *response) {
 }
 
 static void print_response(enum xml_api_action action, xmlDoc *response) {
-    if (!response) {
-        printf("Server didn't understand request.\n");
-        return;
-    }
 
     if (is_error_response(response)) {
         return;
