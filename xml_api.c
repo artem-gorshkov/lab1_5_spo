@@ -321,7 +321,7 @@ xmlDoc *xml_api_make_error(const char *msg) {
     xmlNodePtr errorNode = xmlNewNode(NULL, BAD_CAST "error");
     xmlNodePtr textNode = xmlNewText(BAD_CAST msg);
     xmlAddChild(errorNode, textNode);
-    xmlAddChild(responseNode, textNode);
+    xmlAddChild(responseNode, errorNode);
     xmlDocSetRootElement(doc, responseNode);
     return doc;
 }

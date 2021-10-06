@@ -838,7 +838,7 @@ static void handle_client(int socket, struct storage * storage) {
         int buffersize;
         xmlDocDumpFormatMemory(response_doc, &xmlbuff, &buffersize, 1);
         const char * response = (char *) xmlbuff;
-        printf("Response: %s\n", response);
+        printf("Response: \n %s\n", response);
 
         size_t response_length = strlen(response);
         while (response_length > 0) {

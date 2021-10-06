@@ -23,7 +23,8 @@ static void badAnswer(xmlDoc *response) {
 
 static bool is_error_response(xmlDoc *response) {
     xmlNode *responseNode = xmlDocGetRootElement(response);
-    if (strcmp((char *) responseNode->children->name, "error") == 0) {
+    if (responseNode != NULL && responseNode->children != NULL &&
+            strcmp((char *) responseNode->children->name, "error") == 0) {
         printf("Error: %s.\n", responseNode->children->children->content);
         return true;
     }
