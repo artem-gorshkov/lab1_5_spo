@@ -246,7 +246,7 @@ struct xml_api_select_request xml_api_to_select_request(xmlDoc *doc) {
 
     xmlNodePtr joins_node = find_node(root_node, BAD_CAST "joins");
     if (joins_node != NULL) {
-        int joins_amount = (int) xmlChildElementCount(columns_node);
+        int joins_amount = (int) xmlChildElementCount(joins_node);
         request.joins.amount = joins_amount;
         request.joins.joins = malloc(sizeof(*request.joins.joins) * request.joins.amount);
         i = 0;
