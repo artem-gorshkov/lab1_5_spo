@@ -717,7 +717,9 @@ static xmlDoc *handle_request_select(struct xml_api_select_request request, stru
                     struct storage_value *val = storage_joined_row_get_value(row, columns_indexes[i]);
                     xmlNodePtr textNode = xml_api_from_value(val);
                     xmlNodePtr valueNode = xmlNewNode(NULL, BAD_CAST "value");
-                    xmlNewProp(valueNode, BAD_CAST "type", BAD_CAST val->type);
+                    char str_type[12];
+                    sprintf(str_type, "%d", val->type);
+                    xmlNewProp(valueNode, BAD_CAST "type", BAD_CAST str_type);
                     xmlAddChild(valueNode, textNode);
                     xmlAddChild(rowNode, valueNode);
                 }
