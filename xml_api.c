@@ -201,7 +201,10 @@ struct xml_api_delete_request xml_api_to_delete_request(xmlDoc *doc) {
     request.table_name = strdup((char *) find_node_value(curr_node, BAD_CAST "table"));
 
     xmlNodePtr where_node = find_node(curr_node, BAD_CAST "where");
-    request.where = xml_api_to_where(where_node->doc);
+    if (where_node != NULL)
+        request.where = xml_api_to_where(where_node->doc);
+    else
+        request.where = NULL;
 
     return request;
 }
