@@ -35,9 +35,12 @@ static bool is_error_response(xmlDoc *response) {
 
 static void print_amount_response(xmlDoc *response, const char *action) {
     xmlNode *responseNode = xmlDocGetRootElement(response);
-    if (strcmp((char *) responseNode->children->name, "amount") == 0) {
-        printf("%s rows was %s.\n", (char *) responseNode->children->children->content, action);
-        return;
+    if (responseNode != NULL) {
+        xmlChar *amount = find_node_value(responseNode, BAD_CAST "amount");
+        if (amount != NULL) {
+            printf("%s rows was %s.\n", (char *) amount, action);
+            return;
+        }
     }
 
     badAnswer(response);

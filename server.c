@@ -566,7 +566,7 @@ static xmlDoc *handle_request_delete(struct xml_api_delete_request request, stru
 
     struct storage_joined_table *joined_table = storage_joined_table_wrap(table);
 
-    if (request.where) {
+    if (request.where != NULL) {
         xmlDoc *error = is_where_correct(joined_table, request.where);
 
         if (error) {
@@ -587,7 +587,9 @@ static xmlDoc *handle_request_delete(struct xml_api_delete_request request, stru
     storage_joined_table_delete(joined_table);
     xmlNodePtr responseNode = xmlNewNode(NULL, BAD_CAST "response");
     xmlNodePtr amountNode = xmlNewNode(NULL, BAD_CAST "amount");
-    xmlNodePtr textNode = xmlNewText(BAD_CAST amount);
+    char str_amount[21];
+    sprintf(str_amount, "%llu", amount);
+    xmlNodePtr textNode = xmlNewText(BAD_CAST str_amount);
     xmlAddChild(amountNode, textNode);
     xmlAddChild(responseNode, amountNode);
     return xml_api_make_success(responseNode);
@@ -715,7 +717,9 @@ static xmlDoc *handle_request_select(struct xml_api_select_request request, stru
                     struct storage_value *val = storage_joined_row_get_value(row, columns_indexes[i]);
                     xmlNodePtr textNode = xml_api_from_value(val);
                     xmlNodePtr valueNode = xmlNewNode(NULL, BAD_CAST "value");
-                    xmlNewProp(valueNode, BAD_CAST "type", BAD_CAST val->type);
+                    char str_type[12];
+                    sprintf(str_type, "%d", val->type);
+                    xmlNewProp(valueNode, BAD_CAST "type", BAD_CAST str_type);
                     xmlAddChild(valueNode, textNode);
                     xmlAddChild(rowNode, valueNode);
                 }
@@ -790,7 +794,9 @@ static xmlDoc *handle_request_update(struct xml_api_update_request request, stru
     storage_joined_table_delete(joined_table);
     xmlNodePtr responseNode = xmlNewNode(NULL, BAD_CAST "response");
     xmlNodePtr amountNode = xmlNewNode(NULL, BAD_CAST "amount");
-    xmlNodePtr textNode = xmlNewText(BAD_CAST amount);
+    char str_amount[21];
+    sprintf(str_amount, "%llu", amount);
+    xmlNodePtr textNode = xmlNewText(BAD_CAST str_amount);
     xmlAddChild(amountNode, textNode);
     xmlAddChild(responseNode, amountNode);
     return xml_api_make_success(responseNode);
@@ -897,7 +903,7 @@ int main(int argc, char *argv[]) {
     // define the server address
     struct sockaddr_in server_address;
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(9007);
+    server_address.sin_port = htons(9002);
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     // bind the socket to our specified IP and port
